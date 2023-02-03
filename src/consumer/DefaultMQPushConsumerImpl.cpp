@@ -795,6 +795,7 @@ AsyncPullCallback* DefaultMQPushConsumerImpl::getAsyncPullCallBack(boost::weak_p
     return NULL;
   }
   boost::lock_guard<boost::mutex> lock(m_asyncCallbackLock);
+  // boost::lock_guard<boost::mutex> lock(m_asyncCallbackLock);
   if (m_asyncPull && request) {
     PullMAP::iterator it = m_PullCallback.find(msgQueue);
     if (it == m_PullCallback.end()) {
@@ -805,6 +806,7 @@ AsyncPullCallback* DefaultMQPushConsumerImpl::getAsyncPullCallBack(boost::weak_p
     if (asyncPullCallback) {
       // maybe the pull request has dropped before, replace event time.
       asyncPullCallback->setPullRequest(pullRequest);
+      LOG_INFO("reset request for mq:%s", msgQueue.toString().c_str());
     }
     return asyncPullCallback;
   }
@@ -892,6 +894,7 @@ void DefaultMQPushConsumerImpl::pullMessageAsync(boost::weak_ptr<PullRequest> pu
   }
   try {
     request->setLastPullTimestamp(UtilAll::currentTimeMillis());
+    // boost::lock_guard<boost::mutex> lock(m_asyncCallbackLock);
     AsyncPullCallback* pullCallback = getAsyncPullCallBack(request, messageQueue);
     if (pullCallback == NULL) {
       LOG_WARN("Can not get pull callback for:%s, Maybe this pull request has been released.",
@@ -911,6 +914,7 @@ void DefaultMQPushConsumerImpl::pullMessageAsync(boost::weak_ptr<PullRequest> pu
                                       pullCallback,              // 11
                                       getSessionCredentials(),   // 12
                                       &arg);                     // 13
+    LOG_INFO("already add %s to pullKernel, will release lock.", (request->m_messageQueue).toString().c_str());
   } catch (MQException& e) {
     LOG_ERROR("%s", e.what());
     if (request->isDropped()) {
